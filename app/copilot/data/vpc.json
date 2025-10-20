@@ -1,0 +1,74 @@
+{
+  "Customer Profile": {
+    "Customer Jobs": {
+      "Very Important": [
+        "Provide accurate diagnoses and treatment plans",
+        "Stay updated with the latest medical research"
+      ],
+      "Fairly Important": [
+        "Enhance patient satisfaction and outcomes"
+      ],
+      "Not Important": [
+        "Participate in professional networks and conferences"
+      ]
+    },
+    "Customer Pains": {
+      "Extreme Pain": [
+        "Difficulty in keeping up with the latest medical research due to time constraints",
+        "Pressure to provide accurate diagnoses quickly"
+      ],
+      "Moderate Pain": [
+        "Overwhelmed by the volume of information available online"
+      ],
+      "Low Pain": [
+        "Need for a reliable source of information that is easy to access and navigate"
+      ]
+    },
+    "Customer Gains": {
+      "Very Essential": [
+        "Improved efficiency in accessing medical research"
+      ],
+      "Fairly Essential": [
+        "Ability to provide more accurate diagnoses and treatment plans"
+      ],
+      "Not Essential": [
+        "More time to focus on patient care rather than administrative tasks"
+      ]
+    }
+  },
+  "Value Proposition": {
+    "Products And Services": {
+      "Very Essential": [
+        "Digital platforms that offer quick access to medical information"
+      ],
+      "Fairly Essential": [
+        "Mobile apps that provide on-the-go access to research and patient data"
+      ],
+      "Not Essential": [
+        "Professional networks and conferences for peer recommendations"
+      ]
+    },
+    "Pain Relievers": {
+      "Very Essential": [
+        "Solutions that integrate seamlessly with existing medical systems to save time"
+      ],
+      "Fairly Essential": [
+        "User-friendly tools that require minimal training"
+      ],
+      "Not Essential": [
+        "Platforms that offer peer recommendations and reviews"
+      ]
+    },
+    "Gain Creators": {
+      "Very Essential": [
+        "Tools that improve diagnostic accuracy"
+      ],
+      "Fairly Essential": [
+        "Platforms that enhance patient satisfaction"
+      ],
+      "Not Essential": [
+        "Access to professional networks for peer recommendations"
+      ]
+    }
+  }
+}
