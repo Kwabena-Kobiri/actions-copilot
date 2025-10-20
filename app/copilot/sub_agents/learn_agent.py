@@ -4,8 +4,8 @@ Helps entrepreneurs update their business strategy based on sprint findings.
 """
 
 from google.adk.agents import LlmAgent
-from app.config import DEFAULT_MODEL
-from app.copilot.tools import (
+from config import DEFAULT_MODEL
+from copilot.tools import (
     get_sprint_items,
     get_sprint_item,
     update_sprint_item_status,

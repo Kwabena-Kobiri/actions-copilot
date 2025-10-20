@@ -6,8 +6,8 @@ Provides CRUD operations for Business Model Canvas, Value Proposition Canvas, an
 import json
 import logging
 from typing import Dict, Any, Optional
-from google.adk.tools import tool
-from app.config import BMC_FILE, VPC_FILE, SEGMENTS_FILE
+from google.adk.tools.function_tool import FunctionTool
+from config import BMC_FILE, VPC_FILE, SEGMENTS_FILE
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -45,8 +45,7 @@ def _save_json_file(file_path, data: Dict) -> bool:
 
 # Business Model Canvas Tools
 
-@tool
-def get_business_model_canvas() -> str:
+def _get_business_model_canvas() -> str:
     """
     Retrieve current Business Model Canvas data.
     
@@ -61,8 +60,7 @@ def get_business_model_canvas() -> str:
         return json.dumps({"error": f"Failed to load Business Model Canvas: {str(e)}"})
 
 
-@tool
-def update_business_model_canvas(section: str, updates: str) -> str:
+def _update_business_model_canvas(section: str, updates: str) -> str:
     """
     Update a specific section of the Business Model Canvas.
     
@@ -113,8 +111,7 @@ def update_business_model_canvas(section: str, updates: str) -> str:
 
 # Value Proposition Canvas Tools
 
-@tool
-def get_value_proposition_canvas() -> str:
+def _get_value_proposition_canvas() -> str:
     """
     Retrieve current Value Proposition Canvas data.
     
@@ -129,8 +126,7 @@ def get_value_proposition_canvas() -> str:
         return json.dumps({"error": f"Failed to load Value Proposition Canvas: {str(e)}"})
 
 
-@tool
-def update_value_proposition_canvas(section: str, updates: str) -> str:
+def _update_value_proposition_canvas(section: str, updates: str) -> str:
     """
     Update a specific section of the Value Proposition Canvas.
     
@@ -181,8 +177,7 @@ def update_value_proposition_canvas(section: str, updates: str) -> str:
 
 # Customer Segments Tools
 
-@tool
-def get_customer_segments() -> str:
+def _get_customer_segments() -> str:
     """
     Retrieve current customer segments data.
     
@@ -197,8 +192,7 @@ def get_customer_segments() -> str:
         return json.dumps({"error": f"Failed to load customer segments: {str(e)}"})
 
 
-@tool
-def update_customer_segments(segment_id: str, updates: str) -> str:
+def _update_customer_segments(segment_id: str, updates: str) -> str:
     """
     Update a specific customer segment.
     
@@ -250,3 +244,12 @@ def update_customer_segments(segment_id: str, updates: str) -> str:
     except Exception as e:
         logger.error(f"Error in update_customer_segments: {e}")
         return json.dumps({"error": f"Failed to update customer segments: {str(e)}"})
+
+
+# Create FunctionTool instances
+get_business_model_canvas = FunctionTool(_get_business_model_canvas)
+update_business_model_canvas = FunctionTool(_update_business_model_canvas)
+get_value_proposition_canvas = FunctionTool(_get_value_proposition_canvas)
+update_value_proposition_canvas = FunctionTool(_update_value_proposition_canvas)
+get_customer_segments = FunctionTool(_get_customer_segments)
+update_customer_segments = FunctionTool(_update_customer_segments)

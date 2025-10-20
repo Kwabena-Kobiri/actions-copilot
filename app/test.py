@@ -5,9 +5,9 @@ Tests core functionality and data loading.
 
 import json
 from pathlib import Path
-from app.config import SPRINTS_FILE, BMC_FILE, VPC_FILE, SEGMENTS_FILE
-from app.copilot.tools.sprint_tools import _load_sprints_data
-from app.copilot.tools.canvas_tools import _load_json_file
+from config import SPRINTS_FILE, BMC_FILE, VPC_FILE, SEGMENTS_FILE
+from copilot.tools.sprint_tools import _load_sprints_data
+from copilot.tools.canvas_tools import _load_json_file
 
 
 def test_data_files_exist():
@@ -111,14 +111,14 @@ def test_json_validity():
 def test_agent_imports():
     """Test that all agent modules can be imported."""
     try:
-        from app.copilot.agent import create_master_agent, create_session_service
-        from app.copilot.sub_agents import (
+        from copilot.agent import create_master_agent, create_session_service
+        from copilot.sub_agents import (
             create_design_agent,
             create_execute_agent,
             create_report_agent,
             create_learn_agent
         )
-        from app.copilot.tools import (
+        from copilot.tools import (
             get_sprint_items,
             get_sprint_item,
             update_sprint_item_status,

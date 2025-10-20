@@ -9,13 +9,17 @@ from typing import Optional
 from google.adk.runners import Runner
 from google.adk.sessions import Session
 from google.genai import types
-from app.config import APP_NAME, DEFAULT_USER_ID
-from app.copilot.agent import create_master_agent, create_session_service
+from config import APP_NAME, DEFAULT_USER_ID
+from copilot.agent import create_master_agent, create_session_service
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Suppress ADK internal logging
+logging.getLogger("google_adk").setLevel(logging.WARNING)
+logging.getLogger("google_genai").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 class SprintCoordinatorApp:
     """Main application class for the Sprint Coordinator."""
@@ -54,10 +58,10 @@ class SprintCoordinatorApp:
     
     async def run(self) -> None:
         """Main application loop."""
-        print("🚀 Welcome to the Sprint Coordinator!")
+        print("Welcome to the Sprint Coordinator!")
         print("=" * 50)
         print("This system will guide you through your sprint items using a")
-        print("Design → Execute → Report → Learn workflow.")
+        print("Design -> Execute -> Report -> Learn workflow.")
         print("=" * 50)
         
         try:
@@ -69,17 +73,17 @@ class SprintCoordinatorApp:
                 user_input = await self._get_user_input()
                 
                 if user_input.lower() in ['quit', 'exit', 'bye']:
-                    print("\n👋 Thank you for using the Sprint Coordinator!")
+                    print("\nThank you for using the Sprint Coordinator!")
                     break
                 
                 if user_input.strip():
                     await self._process_user_input(user_input)
                 
         except KeyboardInterrupt:
-            print("\n\n👋 Goodbye!")
+            print("\n\nGoodbye!")
         except Exception as e:
             logger.error(f"Error in main loop: {e}")
-            print(f"❌ An error occurred: {e}")
+            print(f"An error occurred: {e}")
     
     async def _start_conversation(self) -> None:
         """Start the initial conversation with the agent."""
@@ -89,7 +93,7 @@ class SprintCoordinatorApp:
     async def _get_user_input(self) -> str:
         """Get user input from the console."""
         try:
-            return input("\n💬 You: ")
+            return input("\nYou: ")
         except EOFError:
             return "quit"
     
@@ -113,7 +117,7 @@ class SprintCoordinatorApp:
                 new_message=content
             )
             
-            print(f"\n🤖 Sprint Coordinator: ", end="", flush=True)
+            print(f"\nSprint Coordinator: ", end="", flush=True)
             
             async for event in events:
                 if event.is_final_response():
@@ -128,7 +132,7 @@ class SprintCoordinatorApp:
                 
         except Exception as e:
             logger.error(f"Error sending message to agent: {e}")
-            print(f"❌ Error communicating with agent: {e}")
+            print(f"Error communicating with agent: {e}")
 
 
 async def main():
@@ -140,7 +144,7 @@ async def main():
         await app.run()
     except Exception as e:
         logger.error(f"Application error: {e}")
-        print(f"❌ Application error: {e}")
+        print(f"Application error: {e}")
 
 
 if __name__ == "__main__":

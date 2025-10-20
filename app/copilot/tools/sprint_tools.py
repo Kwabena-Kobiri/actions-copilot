@@ -6,8 +6,8 @@ Provides CRUD operations for sprint items and sprint data.
 import json
 import logging
 from typing import Dict, List, Optional
-from google.adk.tools import tool
-from app.config import SPRINTS_FILE
+from google.adk.tools.function_tool import FunctionTool
+from config import SPRINTS_FILE
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -43,8 +43,7 @@ def _save_sprints_data(data: Dict) -> bool:
         return False
 
 
-@tool
-def get_sprint_items() -> str:
+def _get_sprint_items() -> str:
     """
     Retrieve all available sprint items from sprints.json.
     
@@ -59,8 +58,7 @@ def get_sprint_items() -> str:
         return json.dumps({"error": f"Failed to load sprint items: {str(e)}"})
 
 
-@tool
-def get_sprint_item(item_id: str) -> str:
+def _get_sprint_item(item_id: str) -> str:
     """
     Get specific sprint item details by ID.
     
@@ -85,8 +83,7 @@ def get_sprint_item(item_id: str) -> str:
         return json.dumps({"error": f"Failed to get sprint item: {str(e)}"})
 
 
-@tool
-def update_sprint_item_status(item_id: str, status: str, notes: str = "") -> str:
+def _update_sprint_item_status(item_id: str, status: str, notes: str = "") -> str:
     """
     Update sprint item status and add optional notes.
     
@@ -141,8 +138,7 @@ def update_sprint_item_status(item_id: str, status: str, notes: str = "") -> str
         return json.dumps({"error": f"Failed to update sprint item status: {str(e)}"})
 
 
-@tool
-def get_user_sprint_items(user_id: str) -> str:
+def _get_user_sprint_items(user_id: str) -> str:
     """
     Get sprint items assigned to a specific user.
     
@@ -181,3 +177,10 @@ def get_user_sprint_items(user_id: str) -> str:
     except Exception as e:
         logger.error(f"Error in get_user_sprint_items: {e}")
         return json.dumps({"error": f"Failed to get user sprint items: {str(e)}"})
+
+
+# Create FunctionTool instances
+get_sprint_items = FunctionTool(_get_sprint_items)
+get_sprint_item = FunctionTool(_get_sprint_item)
+update_sprint_item_status = FunctionTool(_update_sprint_item_status)
+get_user_sprint_items = FunctionTool(_get_user_sprint_items)

@@ -5,8 +5,8 @@ Orchestrates the Design → Execute → Report → Learn workflow for sprint ite
 
 from google.adk.agents import SequentialAgent
 from google.adk.sessions import InMemorySessionService
-from app.config import APP_NAME, DEFAULT_MODEL
-from app.copilot.sub_agents import (
+from config import APP_NAME, DEFAULT_MODEL
+from copilot.sub_agents import (
     create_design_agent,
     create_execute_agent,
     create_report_agent,
@@ -30,8 +30,8 @@ def create_master_agent() -> SequentialAgent:
     # Create the master Sequential Agent
     master_agent = SequentialAgent(
         name="sprint_coordinator",
-        agents=[design_agent, execute_agent, report_agent, learn_agent],
-        instruction="""You are a Sprint Coordination Master Agent that helps entrepreneurs work through their sprint items systematically.
+        sub_agents=[design_agent, execute_agent, report_agent, learn_agent],
+        description="""You are a Sprint Coordination Master Agent that helps entrepreneurs work through their sprint items systematically.
 
 Your primary responsibilities:
 1. **Sprint Presentation**: Present available sprint items to users and help them choose which to work on
@@ -97,7 +97,6 @@ Store in session.state:
 4. **Learn Agent**: Updates business canvases based on findings
 
 Remember: Your goal is to provide a seamless, guided experience that helps entrepreneurs systematically work through their sprint items and continuously improve their business model through validated learning.""",
-        model=DEFAULT_MODEL
     )
     
     return master_agent
@@ -113,8 +112,12 @@ def create_session_service() -> InMemorySessionService:
     return InMemorySessionService()
 
 
+# Create the root agent instance for ADK CLI discovery
+root_agent = create_master_agent()
+
 # Export the main components
 __all__ = [
     "create_master_agent",
-    "create_session_service"
+    "create_session_service",
+    "root_agent"
 ]
