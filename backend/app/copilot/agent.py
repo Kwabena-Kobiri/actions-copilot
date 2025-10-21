@@ -133,7 +133,7 @@ def create_session_service() -> InMemorySessionService:
 # Create the root agent instance for ADK CLI discovery
 root_agent = create_master_agent()
 
-# Export the main components
+# Export the main components externally
 __all__ = [
     "create_master_agent",
     "create_session_service",
