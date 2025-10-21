@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useReducer } from 'react';
-import { mockSprints } from '../data/mockSprints';
+import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import { getApiUrl } from '../config';
 
 const SprintContext = createContext();
 
@@ -11,16 +11,21 @@ const ACTIONS = {
   HIDE_CONFIRMATION: 'HIDE_CONFIRMATION',
   CONFIRM_SWITCH: 'CONFIRM_SWITCH',
   CANCEL_SWITCH: 'CANCEL_SWITCH',
-  CLEAR_CHAT: 'CLEAR_CHAT'
+  CLEAR_CHAT: 'CLEAR_CHAT',
+  SET_SPRINTS: 'SET_SPRINTS',
+  SET_LOADING: 'SET_LOADING',
+  SET_ERROR: 'SET_ERROR'
 };
 
 // Initial state
 const initialState = {
-  sprints: mockSprints.sprints,
+  sprints: [],
   selectedSprintItem: null,
   autoMode: false,
   showConfirmation: false,
-  pendingSprintItem: null
+  pendingSprintItem: null,
+  loading: false,
+  error: null
 };
 
 // Reducer function
@@ -84,6 +89,28 @@ function sprintReducer(state, action) {
         // This will be handled by the ChatInterface component
       };
 
+    case ACTIONS.SET_SPRINTS:
+      return {
+        ...state,
+        sprints: action.payload,
+        loading: false,
+        error: null
+      };
+
+    case ACTIONS.SET_LOADING:
+      return {
+        ...state,
+        loading: action.payload,
+        error: null
+      };
+
+    case ACTIONS.SET_ERROR:
+      return {
+        ...state,
+        error: action.payload,
+        loading: false
+      };
+
     default:
       return state;
   }
@@ -92,6 +119,29 @@ function sprintReducer(state, action) {
 // Provider component
 export function SprintProvider({ children }) {
   const [state, dispatch] = useReducer(sprintReducer, initialState);
+
+  // Fetch sprints from backend API
+  const fetchSprints = async () => {
+    try {
+      dispatch({ type: ACTIONS.SET_LOADING, payload: true });
+      const response = await fetch(getApiUrl('/api/sprints'));
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      dispatch({ type: ACTIONS.SET_SPRINTS, payload: data.sprints });
+    } catch (error) {
+      console.error('Error fetching sprints:', error);
+      dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
+    }
+  };
+
+  // Fetch sprints on component mount
+  useEffect(() => {
+    fetchSprints();
+  }, []);
 
   const selectSprintItem = (sprintItem, sprint) => {
     const itemWithSprint = {
@@ -124,7 +174,8 @@ export function SprintProvider({ children }) {
     toggleAutoMode,
     confirmSwitch,
     cancelSwitch,
-    clearChat
+    clearChat,
+    fetchSprints
   };
 
   return (

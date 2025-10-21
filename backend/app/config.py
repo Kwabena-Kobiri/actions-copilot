@@ -14,9 +14,11 @@ load_dotenv()
 APP_NAME = os.getenv("APP_NAME", "sprint_coordinator")
 DEFAULT_USER_ID = os.getenv("DEFAULT_USER_ID", "user1234")
 
-# Data file paths
+# Data file paths - pointing to shared global data folder
 BASE_DIR = Path(__file__).parent
-DATA_DIR = BASE_DIR / "copilot" / "data"
+# Navigate up to workspace root, then into global data folder
+WORKSPACE_ROOT = BASE_DIR.parent.parent
+DATA_DIR = WORKSPACE_ROOT / "global data"
 
 SPRINTS_FILE = DATA_DIR / "sprints.json"
 BMC_FILE = DATA_DIR / "bmc.json"

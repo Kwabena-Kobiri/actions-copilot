@@ -1,22 +1,133 @@
 import React, { useState, useEffect, useRef } from 'react';
 import SprintItemCard from './SprintItemCard';
 import { useSprint } from '../context/SprintContext';
-import { mockChatResponses } from '../data/mockSprints';
+import { getApiUrl } from '../config';
 
 export default function ChatInterface() {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [isConnected, setIsConnected] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef(null);
-  const { clearChat } = useSprint();
+  const websocketRef = useRef(null);
+  const { clearChat, selectedSprintItem } = useSprint();
 
   // Clear messages when clearChat is triggered
   useEffect(() => {
     if (clearChat) {
       setMessages([]);
       setUploadedFiles([]);
+      disconnectWebSocket();
     }
   }, [clearChat]);
+
+  // Initialize chat when sprint item is selected
+  useEffect(() => {
+    if (selectedSprintItem && !isConnected) {
+      initializeChat();
+    }
+  }, [selectedSprintItem, isConnected]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      disconnectWebSocket();
+    };
+  }, []);
+
+  const initializeChat = async () => {
+    if (!selectedSprintItem) return;
+
+    try {
+      const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const userId = `user_${Date.now()}`;
+      
+      // Connect to WebSocket
+      connectWebSocket(userId, sessionId);
+      
+      // Add initial bot message
+      setMessages([{
+        id: Date.now(),
+        text: "Hello! I'm ready to help you work through your sprint item. Let's start with the Design Phase!",
+        sender: 'bot',
+        timestamp: new Date().toLocaleTimeString()
+      }]);
+      
+      setIsConnected(true);
+    } catch (error) {
+      console.error('Error initializing chat:', error);
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        text: "Sorry, I couldn't connect to the chat service. Please try again.",
+        sender: 'bot',
+        timestamp: new Date().toLocaleTimeString()
+      }]);
+    }
+  };
+
+  const connectWebSocket = (userId, sessionId) => {
+    if (websocketRef.current) {
+      websocketRef.current.close();
+    }
+
+    const wsUrl = getApiUrl('/ws/chat').replace('http://', 'ws://').replace('https://', 'wss://');
+    const websocket = new WebSocket(wsUrl);
+    websocketRef.current = websocket;
+
+    websocket.onopen = () => {
+      console.log('WebSocket connected');
+      setIsConnected(true);
+    };
+
+    websocket.onmessage = (event) => {
+      const message = event.data;
+      
+      if (message === '--streaming ended--') {
+        setIsLoading(false);
+        return;
+      }
+      
+      // Update the last bot message with streaming content
+      setMessages(prev => {
+        const newMessages = [...prev];
+        const lastMessage = newMessages[newMessages.length - 1];
+        if (lastMessage && lastMessage.sender === 'bot') {
+          lastMessage.text = (lastMessage.text || '') + message;
+        } else {
+          newMessages.push({
+            id: Date.now(),
+            text: message,
+            sender: 'bot',
+            timestamp: new Date().toLocaleTimeString()
+          });
+        }
+        return newMessages;
+      });
+    };
+
+    websocket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      setIsLoading(false);
+    };
+
+    websocket.onclose = () => {
+      console.log('WebSocket disconnected');
+      setIsConnected(false);
+    };
+
+    // Store user and session info for sending messages
+    websocket.userId = userId;
+    websocket.sessionId = sessionId;
+  };
+
+  const disconnectWebSocket = () => {
+    if (websocketRef.current) {
+      websocketRef.current.close();
+      websocketRef.current = null;
+    }
+    setIsConnected(false);
+  };
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files);
@@ -31,32 +142,46 @@ export default function ChatInterface() {
     fileInputRef.current?.click();
   };
 
-  const handleSendMessage = (e) => {
+  const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!inputValue.trim() && uploadedFiles.length === 0) return;
+    if (!selectedSprintItem) return;
+    if (!websocketRef.current || websocketRef.current.readyState !== WebSocket.OPEN) return;
+
+    const messageText = inputValue || (uploadedFiles.length > 0 ? `Sent ${uploadedFiles.length} file(s)` : '');
 
     // Add user message with files if any
     const userMessage = {
       id: Date.now(),
-      text: inputValue || (uploadedFiles.length > 0 ? `Sent ${uploadedFiles.length} file(s)` : ''),
+      text: messageText,
       sender: 'user',
       timestamp: new Date().toLocaleTimeString(),
       files: uploadedFiles.length > 0 ? [...uploadedFiles] : undefined
     };
 
     setMessages(prev => [...prev, userMessage]);
+    setIsLoading(true);
 
-    // Add mock response after a short delay
-    setTimeout(() => {
-      const randomResponse = mockChatResponses[Math.floor(Math.random() * mockChatResponses.length)];
-      const botMessage = {
+    try {
+      // Send message via WebSocket
+      const message = {
+        user_id: websocketRef.current.userId,
+        session_id: websocketRef.current.sessionId,
+        message: messageText,
+        sprint_item_id: selectedSprintItem.item_id
+      };
+
+      websocketRef.current.send(JSON.stringify(message));
+    } catch (error) {
+      console.error('Error sending message:', error);
+      setMessages(prev => [...prev, {
         id: Date.now() + 1,
-        text: randomResponse,
+        text: "Sorry, I couldn't send your message. Please try again.",
         sender: 'bot',
         timestamp: new Date().toLocaleTimeString()
-      };
-      setMessages(prev => [...prev, botMessage]);
-    }, 1000);
+      }]);
+      setIsLoading(false);
+    }
 
     setInputValue('');
     setUploadedFiles([]);
@@ -71,9 +196,14 @@ export default function ChatInterface() {
 
       {/* Chat Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 ? (
+        {!selectedSprintItem ? (
+          <div className="text-center text-gray-500 mt-8">
+            <p>Please select a sprint item to start chatting!</p>
+          </div>
+        ) : messages.length === 0 ? (
           <div className="text-center text-gray-500 mt-8">
             <p>Start a conversation about your sprint item!</p>
+            {isLoading && <p className="text-blue-500">Connecting...</p>}
           </div>
         ) : (
           messages.map((message) => (
@@ -183,16 +313,28 @@ export default function ChatInterface() {
           {/* Send Button */}
           <button
             type="submit"
-            className="p-2 text-blue-600 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-full"
+            disabled={!selectedSprintItem || isLoading}
+            className={`p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-full ${
+              !selectedSprintItem || isLoading
+                ? 'text-gray-400 cursor-not-allowed'
+                : 'text-blue-600 hover:text-blue-700'
+            }`}
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-              />
-            </svg>
+            {isLoading ? (
+              <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                />
+              </svg>
+            )}
           </button>
           </form>
         </div>

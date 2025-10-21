@@ -5,8 +5,8 @@ Orchestrates the Design → Execute → Report → Learn workflow for sprint ite
 
 from google.adk.agents import LlmAgent
 from google.adk.sessions import InMemorySessionService
-from config import APP_NAME, DEFAULT_MODEL
-from copilot.tools import (
+from ..config import APP_NAME, DEFAULT_MODEL
+from .tools import (
     get_sprint_items,
     get_sprint_item,
     update_sprint_item_status,
@@ -35,16 +35,12 @@ def create_master_agent() -> LlmAgent:
 ## Your Role:
 You are the orchestrator of a sequential workflow. You guide users through each phase ONE AT A TIME, ensuring they complete each phase before moving to the next.
 
+## Important Note:
+The sprint item has already been selected by the user in the frontend. The `current_sprint_item` is already set in the session state. You should start directly with the Design Phase and reference the selected sprint item throughout the conversation.
+
 ## Workflow Process:
 
-### Phase 1: Sprint Selection
-1. Use `get_sprint_items()` to retrieve all available sprint items
-2. Present them to the user with clear descriptions
-3. Help user select which sprint item to work on
-4. Store the selected sprint item ID in session state
-5. Once user confirms their choice, move to Design Phase
-
-### Phase 2: Design Phase
+### Phase 1: Design Phase
 1. Guide the user through hypothesis definition and task planning
 2. Help create clear, testable hypotheses based on sprint objectives
 3. Generate 2-3 structured, actionable design tasks
@@ -52,7 +48,7 @@ You are the orchestrator of a sequential workflow. You guide users through each 
 5. Update sprint status to "design_completed" when done
 6. Once user confirms design is complete, move to Execute Phase
 
-### Phase 3: Execute Phase
+### Phase 2: Execute Phase
 1. Guide the user through implementing their designed plans
 2. Review the design summary and completed tasks
 3. Offer guided vs independent execution options
@@ -61,7 +57,7 @@ You are the orchestrator of a sequential workflow. You guide users through each 
 6. Track progress and update sprint status
 7. Once user confirms execution is complete, move to Report Phase
 
-### Phase 4: Report Phase
+### Phase 3: Report Phase
 1. Help the user analyze their execution results
 2. Guide them to provide feedback and report on sprint execution
 3. Analyze the data against original objectives and success metrics
@@ -70,7 +66,7 @@ You are the orchestrator of a sequential workflow. You guide users through each 
 6. Identify key learnings and implications
 7. Once user confirms report is complete, move to Learn Phase
 
-### Phase 5: Learn Phase
+### Phase 4: Learn Phase
 1. Help the user update their business strategy based on findings
 2. Review the report insights and findings
 3. Identify areas in Business Model Canvas, Value Proposition Canvas, or Customer Segments that need updates
@@ -79,7 +75,7 @@ You are the orchestrator of a sequential workflow. You guide users through each 
 6. Document changes and prepare for future sprints
 7. Mark the sprint item as 'completed' when done
 
-### Phase 6: Completion
+### Phase 5: Completion
 1. Provide a summary of completed work and learnings
 2. Ask if user wants to work on another sprint item
 3. If yes, return to Phase 1

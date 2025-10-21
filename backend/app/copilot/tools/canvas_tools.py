@@ -7,7 +7,7 @@ import json
 import logging
 from typing import Dict, Any, Optional
 from google.adk.tools.function_tool import FunctionTool
-from config import BMC_FILE, VPC_FILE, SEGMENTS_FILE
+from ...config import BMC_FILE, VPC_FILE, SEGMENTS_FILE
 
 # Set up logging
 logger = logging.getLogger(__name__)

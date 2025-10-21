@@ -7,7 +7,7 @@ import json
 import logging
 from typing import Dict, List, Optional
 from google.adk.tools.function_tool import FunctionTool
-from config import SPRINTS_FILE
+from ...config import SPRINTS_FILE
 
 # Set up logging
 logger = logging.getLogger(__name__)
