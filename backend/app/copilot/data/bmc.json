@@ -1,0 +1,62 @@
+{
+  "Key Partners": [
+    "Medical research institutions",
+    "Healthcare technology providers",
+    "Professional medical associations"
+  ],
+  "Key Activities": {
+    "Strategic Integration Development": "Focus on phased integration starting with open-source (OpenMRS, Bahmni) and mandatory government systems (NHIA CLAIM-it), followed by commercial systems based on market demand.",
+    "Partnership and Stakeholder Management": "Actively build and maintain relationships with the Ministry of Health (MOH), Ghana Health Service, and hospital administrators for pilot deployments and system access.",
+    "Healthcare IT System Expertise Development": "Continuously develop in-house expertise in FHIR R4, HL7 v2, and proprietary APIs of key Ghanaian medical systems, including data mapping and transformation.",
+    "Robust Testing and QA": "Implement comprehensive integration testing with a focus on performance, error handling, and data accuracy across all integrated platforms.",
+    "Offline-First and Connectivity Optimization": "Develop and maintain robust offline capabilities and data synchronization strategies to address low-connectivity environments in Ghana."
+  },
+  "Key Resources": [
+    "Digital platform infrastructure",
+    "Medical research database",
+    "Technical and medical expertise"
+  ],
+  "Value Proposition": {
+    "title": "Efficient Medical Access",
+    "description": "Our digital platform helps doctors who want to provide accurate diagnoses and treatment plans by minimizing the difficulty in keeping up with the latest medical research due to time constraints and maximizing improved efficiency in accessing medical research, unlike traditional methods that are time-consuming and fragmented. **Validated by survey: 75% positive feedback on content efficiency.**"
+  },
+  "Customer Relationships": [
+    "Personalized support and training",
+    "Online community and forums",
+    "Regular updates and newsletters"
+  ],
+  "Channels": [
+    "Mobile app for on-the-go access",
+    "Online platform for desktop access",
+    "Integration with existing medical systems"
+  ],
+  "Customer Segment": {
+    "primary": "Doctors (General Practitioners)",
+    "persona": {
+      "name": "Dr. Kwame Mensah",
+      "location": "Accra, Ghana",
+      "experience": "20+ years",
+      "challenges": "Increasing patient volume and quick access to relevant research",
+      "goals": "Streamline research process, provide accurate diagnoses and treatment plans efficiently",
+      "motivation": "Enhance patient outcomes and maintain reputation as trusted healthcare provider"
+    }
+  },
+  "Cost Structure": [
+    "Platform development and maintenance costs",
+    "Content curation and licensing fees",
+    "Marketing and customer acquisition expenses"
+  ],
+  "Revenue Streams": [
+    "Subscription fees from doctors",
+    "Partnerships with medical institutions",
+    "Advertising and sponsorships"
+  ],
+  "Eco-Social Costs": [
+    "Digital divide in access to technology",
+    "Potential over-reliance on digital tools"
+  ],
+  "Eco-Social Benefits": [
+    "Improved healthcare outcomes",
+    "Increased access to up-to-date medical information"
+  ]
+}
