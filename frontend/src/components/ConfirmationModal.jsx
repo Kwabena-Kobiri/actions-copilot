@@ -2,7 +2,7 @@ import React from 'react';
 import { useSprint } from '../context/SprintContext';
 
 export default function ConfirmationModal() {
-  const { showConfirmation, pendingSprintItem, confirmSwitch, cancelSwitch } = useSprint();
+  const { showConfirmation, pendingSprintItem, confirmSwitch, cancelSwitch, clearChat } = useSprint();
 
   if (!showConfirmation || !pendingSprintItem) {
     return null;
@@ -28,7 +28,10 @@ export default function ConfirmationModal() {
             Cancel
           </button>
           <button
-            onClick={confirmSwitch}
+            onClick={() => {
+              clearChat();
+              confirmSwitch();
+            }}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             Yes, Switch

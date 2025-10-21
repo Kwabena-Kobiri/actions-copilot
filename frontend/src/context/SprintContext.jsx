@@ -10,7 +10,8 @@ const ACTIONS = {
   SHOW_CONFIRMATION: 'SHOW_CONFIRMATION',
   HIDE_CONFIRMATION: 'HIDE_CONFIRMATION',
   CONFIRM_SWITCH: 'CONFIRM_SWITCH',
-  CANCEL_SWITCH: 'CANCEL_SWITCH'
+  CANCEL_SWITCH: 'CANCEL_SWITCH',
+  CLEAR_CHAT: 'CLEAR_CHAT'
 };
 
 // Initial state
@@ -77,6 +78,12 @@ function sprintReducer(state, action) {
         pendingSprintItem: null
       };
 
+    case ACTIONS.CLEAR_CHAT:
+      return {
+        ...state,
+        // This will be handled by the ChatInterface component
+      };
+
     default:
       return state;
   }
@@ -107,12 +114,17 @@ export function SprintProvider({ children }) {
     dispatch({ type: ACTIONS.CANCEL_SWITCH });
   };
 
+  const clearChat = () => {
+    dispatch({ type: ACTIONS.CLEAR_CHAT });
+  };
+
   const value = {
     ...state,
     selectSprintItem,
     toggleAutoMode,
     confirmSwitch,
-    cancelSwitch
+    cancelSwitch,
+    clearChat
   };
 
   return (
