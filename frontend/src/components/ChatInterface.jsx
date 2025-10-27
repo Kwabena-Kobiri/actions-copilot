@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import SprintItemCard from './SprintItemCard';
 import { useSprint } from '../context/SprintContext';
 import { mockChatResponses } from '../data/mockSprints';
@@ -8,7 +10,10 @@ export default function ChatInterface() {
   const [inputValue, setInputValue] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const fileInputRef = useRef(null);
-  const { clearChat } = useSprint();
+  const [isConnected, setIsConnected] = useState(false);
+  const [ws, setWs] = useState(null);
+  const [sessionId, setSessionId] = useState(null);
+  const { clearChat, selectedSprintItem } = useSprint();
 
   // Clear messages when clearChat is triggered
   useEffect(() => {
@@ -17,6 +22,88 @@ export default function ChatInterface() {
       setUploadedFiles([]);
     }
   }, [clearChat]);
+
+  // Initialize WebSocket connection and send initial message when sprint item is selected
+  useEffect(() => {
+    if (!selectedSprintItem) {
+      return;
+    }
+
+    // Create new session ID for this sprint item
+    const newSessionId = `session_${selectedSprintItem.item_id}_${Date.now()}`;
+    setSessionId(newSessionId);
+
+    // Create WebSocket connection
+    const websocket = new WebSocket('ws://localhost:8000/ws/chat/');
+
+    websocket.onopen = () => {
+      console.log('WebSocket connected');
+      setIsConnected(true);
+
+      // Send initial message
+      const initialMessage = {
+        user_id: 'user1234', // You can get this from user context
+        session_id: newSessionId,
+        message: `Help me to work on sprint item "${selectedSprintItem.item_id}"`
+      };
+
+      websocket.send(JSON.stringify(initialMessage));
+    };
+
+    websocket.onmessage = (event) => {
+      const text = event.data;
+      
+      if (text === '--streaming ended--') {
+        // Streaming completed
+        return;
+      }
+
+      // Add or update bot message with streaming text
+      setMessages(prev => {
+        const lastMessage = prev[prev.length - 1];
+        if (lastMessage && lastMessage.sender === 'bot' && lastMessage.isStreaming) {
+          // Update existing streaming message
+          return [
+            ...prev.slice(0, -1),
+            {
+              ...lastMessage,
+              text: lastMessage.text + text,
+              timestamp: new Date().toLocaleTimeString()
+            }
+          ];
+        } else {
+          // Create new bot message
+          return [
+            ...prev,
+            {
+              id: Date.now(),
+              text: text,
+              sender: 'bot',
+              timestamp: new Date().toLocaleTimeString(),
+              isStreaming: true
+            }
+          ];
+        }
+      });
+    };
+
+    websocket.onclose = () => {
+      console.log('WebSocket disconnected');
+      setIsConnected(false);
+    };
+
+    websocket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      setIsConnected(false);
+    };
+
+    setWs(websocket);
+
+    // Cleanup function
+    return () => {
+      websocket.close();
+    };
+  }, [selectedSprintItem]);
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files);
@@ -34,6 +121,7 @@ export default function ChatInterface() {
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (!inputValue.trim() && uploadedFiles.length === 0) return;
+    if (!ws || !isConnected) return;
 
     // Add user message with files if any
     const userMessage = {
@@ -46,17 +134,14 @@ export default function ChatInterface() {
 
     setMessages(prev => [...prev, userMessage]);
 
-    // Add mock response after a short delay
-    setTimeout(() => {
-      const randomResponse = mockChatResponses[Math.floor(Math.random() * mockChatResponses.length)];
-      const botMessage = {
-        id: Date.now() + 1,
-        text: randomResponse,
-        sender: 'bot',
-        timestamp: new Date().toLocaleTimeString()
-      };
-      setMessages(prev => [...prev, botMessage]);
-    }, 1000);
+    // Send message via WebSocket
+    const message = {
+      user_id: 'user1234', // You can get this from user context
+      session_id: sessionId,
+      message: inputValue.trim()
+    };
+
+    ws.send(JSON.stringify(message));
 
     setInputValue('');
     setUploadedFiles([]);
@@ -71,9 +156,13 @@ export default function ChatInterface() {
 
       {/* Chat Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 ? (
+        {!selectedSprintItem ? (
           <div className="text-center text-gray-500 mt-8">
-            <p>Start a conversation about your sprint item!</p>
+            <p>Select a sprint item from the left to start a conversation!</p>
+          </div>
+        ) : messages.length === 0 ? (
+          <div className="text-center text-gray-500 mt-8">
+            <p>Connecting to your sprint coordinator...</p>
           </div>
         ) : (
           messages.map((message) => (
@@ -88,7 +177,15 @@ export default function ChatInterface() {
                     : 'bg-white text-gray-900 border border-gray-200'
                 }`}
               >
-                <p className="text-sm">{message.text}</p>
+                {message.sender === 'bot' ? (
+                  <div className="text-sm prose prose-sm max-w-none">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {message.text}
+                    </ReactMarkdown>
+                  </div>
+                ) : (
+                  <p className="text-sm">{message.text}</p>
+                )}
                 {message.files && message.files.length > 0 && (
                   <div className="mt-2 space-y-1">
                     {message.files.map((file, index) => (
@@ -158,7 +255,12 @@ export default function ChatInterface() {
           <button
             type="button"
             onClick={handleFileButtonClick}
-            className="p-2 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-full"
+            disabled={!selectedSprintItem || !isConnected}
+            className={`p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-full ${
+              !selectedSprintItem || !isConnected
+                ? 'text-gray-300 cursor-not-allowed'
+                : 'text-gray-400 hover:text-gray-600'
+            }`}
             title="Upload files"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -176,14 +278,24 @@ export default function ChatInterface() {
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Type your message"
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder={!selectedSprintItem ? "Select a sprint item to start chatting" : "Type your message"}
+            disabled={!selectedSprintItem || !isConnected}
+            className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:border-transparent ${
+              !selectedSprintItem || !isConnected
+                ? 'border-gray-200 bg-gray-100 cursor-not-allowed'
+                : 'border-gray-300 focus:ring-blue-500'
+            }`}
           />
 
           {/* Send Button */}
           <button
             type="submit"
-            className="p-2 text-blue-600 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-full"
+            disabled={!selectedSprintItem || !isConnected}
+            className={`p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-full ${
+              !selectedSprintItem || !isConnected
+                ? 'text-gray-300 cursor-not-allowed'
+                : 'text-blue-600 hover:text-blue-700'
+            }`}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path

@@ -8,6 +8,7 @@ import logging
 from typing import Optional
 from google.adk.runners import Runner
 from google.adk.sessions import Session
+from google.adk.agents.run_config import RunConfig, StreamingMode
 from google.genai import types
 from config import APP_NAME, DEFAULT_USER_ID
 from copilot.agent import create_master_agent, create_session_service
@@ -110,25 +111,41 @@ class SprintCoordinatorApp:
                 parts=[types.Part(text=message)]
             )
             
+            # Create RunConfig with streaming enabled
+            run_config = RunConfig(
+                streaming_mode=StreamingMode.SSE,
+                max_llm_calls=200
+            )
+            
             # Run the agent and stream responses
             events = self.runner.run_async(
                 user_id=self.user_id,
                 session_id=self.session_id,
-                new_message=content
+                new_message=content,
+                run_config=run_config
             )
             
             print(f"\nSprint Coordinator: ", end="", flush=True)
             
             async for event in events:
-                if event.is_final_response():
-                    final_response = event.content.parts[0].text
-                    print(final_response)
-                elif hasattr(event, 'content') and event.content:
-                    # Stream partial responses
-                    if hasattr(event.content, 'parts') and event.content.parts:
-                        for part in event.content.parts:
-                            if hasattr(part, 'text') and part.text:
-                                print(part.text, end="", flush=True)
+                # Check if event has content with text parts
+                if (hasattr(event, 'content') and event.content and 
+                    hasattr(event.content, 'parts') and event.content.parts):
+                    
+                    for part in event.content.parts:
+                        if hasattr(part, 'text') and part.text:
+                            text = part.text
+                            
+                            # Handle streaming tokens (partial responses)
+                            if hasattr(event, 'partial') and event.partial:
+                                print(text, end="", flush=True)
+                            
+                            # Handle final response
+                            elif event.is_final_response():
+                                if text:
+                                    print(text, end="", flush=True)
+                                print()  # New line after final response
+                                break
                 
         except Exception as e:
             logger.error(f"Error sending message to agent: {e}")

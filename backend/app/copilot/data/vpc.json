@@ -64,9 +64,5 @@
         "Access to professional networks for peer recommendations"
       ]
     }
-  },
-  "Gains": {
-    "Automated Claims Generation": "Significantly reduced administrative burden and time savings through automated claims generation (NHIA CLAIM-it integration).",
-    "Enhanced Efficiency": "Enhanced efficiency in patient record management and data retrieval across integrated systems (OpenMRS, Bahmni)."
   }
 }

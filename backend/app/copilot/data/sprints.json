@@ -14,7 +14,7 @@
           "success_metric": "Achieve >70% positive feedback on content efficiency from surveyed doctors.",
           "due_date": "Sat, 1st Nov 2025",
           "assignee": "Solokobiri",
-          "status": "completed",
+          "status": "pending",
           "notes": "Survey on content efficiency completed with 75% positive feedback, exceeding the >70% success metric. Business Model Canvas (Value Proposition) and Value Proposition Canvas (Customer Gains) updated to reflect validated efficiency. Analysis confirmed, and learnings applied."
         },
         {
@@ -25,7 +25,7 @@
           "due_date": "Sun, 2nd Nov 2025",
           "assignee": "Solokobiri",
           "status": "completed",
-          "notes": "Learn phase completed. Business Model Canvas and Value Proposition Canvas updated based on integration insights. Customer Segments maintained."
+          "notes": "Learn phase completed and accepted by user. Sprint item is now completed."
         },
         {
           "item_id": "s1_item_3",
@@ -88,7 +88,8 @@
           "success_metric": "Achieve > 10% conversion rate from early adopters at tested pricing tiers.",
           "due_date": "Sat, 8th Nov 2025",
           "assignee": "Solokobiri",
-          "status": "pending"
+          "status": "in_progress",
+          "notes": "Sprint item selected and Design Phase initiated."
         },
         {
           "item_id": "s2_item_4",

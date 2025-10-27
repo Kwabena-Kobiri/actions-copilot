@@ -99,7 +99,7 @@ def _update_sprint_item_status(item_id: str, status: str, notes: str = "") -> st
         data = _load_sprints_data()
         
         # Validate status
-        valid_statuses = ['pending', 'in_progress', 'completed']
+        valid_statuses = ['pending', 'in_progress', 'design_completed', 'execute_completed', 'report_completed', 'completed']
         if status not in valid_statuses:
             return json.dumps({
                 "error": f"Invalid status '{status}'. Must be one of: {valid_statuses}"

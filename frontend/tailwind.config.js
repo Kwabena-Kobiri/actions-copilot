@@ -5,4 +5,7 @@ export default defineConfig({
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  plugins: [
+    require('@tailwindcss/typography'),
+  ],
 })

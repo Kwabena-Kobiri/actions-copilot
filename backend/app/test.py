@@ -1,162 +1,169 @@
 """
-Basic tests for the Sprint Coordinator application.
-Tests core functionality and data loading.
+Main entry point for the Sprint Coordinator application.
+Provides an async interface for interacting with the sequential agent system.
 """
 
-import json
-from pathlib import Path
-from config import SPRINTS_FILE, BMC_FILE, VPC_FILE, SEGMENTS_FILE
-from copilot.tools.sprint_tools import _load_sprints_data
-from copilot.tools.canvas_tools import _load_json_file
+import asyncio
+import logging
+from typing import Optional
+from google.adk.runners import Runner
+from google.adk.sessions import Session
+from google.adk.agents.run_config import RunConfig, StreamingMode
+from google.genai import types
+from config import APP_NAME, DEFAULT_USER_ID
+from copilot.agent import create_master_agent, create_session_service
 
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-def test_data_files_exist():
-    """Test that all required data files exist."""
-    assert SPRINTS_FILE.exists(), f"Sprints file not found: {SPRINTS_FILE}"
-    assert BMC_FILE.exists(), f"BMC file not found: {BMC_FILE}"
-    assert VPC_FILE.exists(), f"VPC file not found: {VPC_FILE}"
-    assert SEGMENTS_FILE.exists(), f"Segments file not found: {SEGMENTS_FILE}"
+# Suppress ADK internal logging
+logging.getLogger("google_adk").setLevel(logging.WARNING)
+logging.getLogger("google_genai").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
-
-def test_sprints_data_loading():
-    """Test that sprints data can be loaded and parsed."""
-    data = _load_sprints_data()
+class SprintCoordinatorApp:
+    """Main application class for the Sprint Coordinator."""
     
-    # Check basic structure
-    assert isinstance(data, dict), "Sprints data should be a dictionary"
-    assert "sprints" in data, "Sprints data should contain 'sprints' key"
-    assert "sprint_analysis" in data, "Sprints data should contain 'sprint_analysis' key"
+    def __init__(self):
+        """Initialize the application with master agent and session service."""
+        self.master_agent = create_master_agent()
+        self.session_service = create_session_service()
+        self.session: Optional[Session] = None
+        self.runner: Optional[Runner] = None
+        self.user_id = DEFAULT_USER_ID
+        self.session_id = "main_session"
     
-    # Check sprints structure
-    sprints = data["sprints"]
-    assert isinstance(sprints, list), "Sprints should be a list"
-    
-    if sprints:  # If there are sprints, check their structure
-        sprint = sprints[0]
-        required_keys = ["sprint_id", "title", "goal", "items"]
-        for key in required_keys:
-            assert key in sprint, f"Sprint should contain '{key}'"
-        
-        # Check items structure
-        items = sprint["items"]
-        assert isinstance(items, list), "Sprint items should be a list"
-        
-        if items:  # If there are items, check their structure
-            item = items[0]
-            required_item_keys = ["item_id", "task", "objective", "success_metric", "status"]
-            for key in required_item_keys:
-                assert key in item, f"Sprint item should contain '{key}'"
-
-
-def test_bmc_data_loading():
-    """Test that Business Model Canvas data can be loaded."""
-    data = _load_json_file(BMC_FILE)
-    
-    assert isinstance(data, dict), "BMC data should be a dictionary"
-    
-    # Check for key BMC sections
-    expected_sections = [
-        "Key Partners", "Key Activities", "Key Resources", 
-        "Value Proposition", "Customer Relationships", "Channels",
-        "Customer Segment", "Cost Structure", "Revenue Streams"
-    ]
-    
-    for section in expected_sections:
-        assert section in data, f"BMC should contain '{section}' section"
-
-
-def test_vpc_data_loading():
-    """Test that Value Proposition Canvas data can be loaded."""
-    data = _load_json_file(VPC_FILE)
-    
-    assert isinstance(data, dict), "VPC data should be a dictionary"
-    
-    # Check for key VPC sections
-    expected_sections = ["Customer Profile", "Value Proposition"]
-    for section in expected_sections:
-        assert section in data, f"VPC should contain '{section}' section"
-
-
-def test_segments_data_loading():
-    """Test that customer segments data can be loaded."""
-    data = _load_json_file(SEGMENTS_FILE)
-    
-    assert isinstance(data, dict), "Segments data should be a dictionary"
-    assert "customer_segments" in data, "Segments data should contain 'customer_segments' key"
-    
-    segments = data["customer_segments"]
-    assert isinstance(segments, list), "Customer segments should be a list"
-    
-    if segments:  # If there are segments, check their structure
-        segment = segments[0]
-        required_keys = ["id", "archetype", "demographics"]
-        for key in required_keys:
-            assert key in segment, f"Customer segment should contain '{key}'"
-
-
-def test_json_validity():
-    """Test that all JSON files are valid."""
-    files = [SPRINTS_FILE, BMC_FILE, VPC_FILE, SEGMENTS_FILE]
-    
-    for file_path in files:
+    async def initialize(self) -> None:
+        """Initialize the session and runner."""
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                json.load(f)
-        except json.JSONDecodeError as e:
-            raise AssertionError(f"Invalid JSON in {file_path}: {e}")
+            # Create session
+            self.session = await self.session_service.create_session(
+                app_name=APP_NAME,
+                user_id=self.user_id,
+                session_id=self.session_id
+            )
+            
+            # Create runner
+            self.runner = Runner(
+                agent=self.master_agent,
+                app_name=APP_NAME,
+                session_service=self.session_service
+            )
+            
+            logger.info("Sprint Coordinator initialized successfully")
+            
         except Exception as e:
-            raise AssertionError(f"Error reading {file_path}: {e}")
+            logger.error(f"Failed to initialize Sprint Coordinator: {e}")
+            raise
+    
+    async def run(self) -> None:
+        """Main application loop."""
+        print("Welcome to the Sprint Coordinator!")
+        print("=" * 50)
+        print("This system will guide you through your sprint items using a")
+        print("Design -> Execute -> Report -> Learn workflow.")
+        print("=" * 50)
+        
+        try:
+            # Start the conversation
+            await self._start_conversation()
+            
+            # Main interaction loop
+            while True:
+                user_input = await self._get_user_input()
+                
+                if user_input.lower() in ['quit', 'exit', 'bye']:
+                    print("\nThank you for using the Sprint Coordinator!")
+                    break
+                
+                if user_input.strip():
+                    await self._process_user_input(user_input)
+                
+        except KeyboardInterrupt:
+            print("\n\nGoodbye!")
+        except Exception as e:
+            logger.error(f"Error in main loop: {e}")
+            print(f"An error occurred: {e}")
+    
+    async def _start_conversation(self) -> None:
+        """Start the initial conversation with the agent."""
+        initial_message = "Hello! I'm ready to help you work through your sprint items. Let's get started!"
+        await self._send_message_to_agent(initial_message)
+    
+    async def _get_user_input(self) -> str:
+        """Get user input from the console."""
+        try:
+            return input("\nYou: ")
+        except EOFError:
+            return "quit"
+    
+    async def _process_user_input(self, user_input: str) -> None:
+        """Process user input and get agent response."""
+        await self._send_message_to_agent(user_input)
+    
+    async def _send_message_to_agent(self, message: str) -> None:
+        """Send a message to the agent and stream the response."""
+        try:
+            # Create content object
+            content = types.Content(
+                role='user',
+                parts=[types.Part(text=message)]
+            )
+            
+            # Create RunConfig with streaming enabled
+            run_config = RunConfig(
+                streaming_mode=StreamingMode.SSE,
+                max_llm_calls=200
+            )
+            
+            # Run the agent and stream responses
+            events = self.runner.run_async(
+                user_id=self.user_id,
+                session_id=self.session_id,
+                new_message=content,
+                run_config=run_config
+            )
+            
+            print(f"\nSprint Coordinator: ", end="", flush=True)
+            
+            async for event in events:
+                # Check if event has content with text parts
+                if (hasattr(event, 'content') and event.content and 
+                    hasattr(event.content, 'parts') and event.content.parts):
+                    
+                    for part in event.content.parts:
+                        if hasattr(part, 'text') and part.text:
+                            text = part.text
+                            
+                            # Handle streaming tokens (partial responses)
+                            if hasattr(event, 'partial') and event.partial:
+                                print(text, end="", flush=True)
+                            
+                            # Handle final response
+                            elif event.is_final_response():
+                                if text:
+                                    print(text, end="", flush=True)
+                                print()  # New line after final response
+                                break
+                
+        except Exception as e:
+            logger.error(f"Error sending message to agent: {e}")
+            print(f"Error communicating with agent: {e}")
 
 
-def test_agent_imports():
-    """Test that all agent modules can be imported."""
+async def main():
+    """Main entry point."""
+    app = SprintCoordinatorApp()
+    
     try:
-        from copilot.agent import create_master_agent, create_session_service
-        from copilot.sub_agents import (
-            create_design_agent,
-            create_execute_agent,
-            create_report_agent,
-            create_learn_agent
-        )
-        from copilot.tools import (
-            get_sprint_items,
-            get_sprint_item,
-            update_sprint_item_status,
-            get_business_model_canvas,
-            update_business_model_canvas
-        )
-    except ImportError as e:
-        raise AssertionError(f"Failed to import agent modules: {e}")
+        await app.initialize()
+        await app.run()
+    except Exception as e:
+        logger.error(f"Application error: {e}")
+        print(f"Application error: {e}")
 
 
 if __name__ == "__main__":
-    # Run basic tests
-    print("Running Sprint Coordinator tests...")
-    
-    try:
-        test_data_files_exist()
-        print("✅ Data files exist")
-        
-        test_sprints_data_loading()
-        print("✅ Sprints data loading")
-        
-        test_bmc_data_loading()
-        print("✅ BMC data loading")
-        
-        test_vpc_data_loading()
-        print("✅ VPC data loading")
-        
-        test_segments_data_loading()
-        print("✅ Segments data loading")
-        
-        test_json_validity()
-        print("✅ JSON validity")
-        
-        test_agent_imports()
-        print("✅ Agent imports")
-        
-        print("\n🎉 All tests passed!")
-        
-    except Exception as e:
-        print(f"❌ Test failed: {e}")
-        raise
+    # Run the application
+    asyncio.run(main())
