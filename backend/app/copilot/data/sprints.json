@@ -24,8 +24,8 @@
           "success_metric": "Successful integration with at least 3 major medical systems without performance issues.",
           "due_date": "Sun, 2nd Nov 2025",
           "assignee": "Solokobiri",
-          "status": "completed",
-          "notes": "Learn phase completed and accepted by user. Sprint item is now completed."
+          "status": "pending",
+          "notes": "Sprint item completed."
         },
         {
           "item_id": "s1_item_3",
@@ -34,7 +34,8 @@
           "success_metric": "80% of focus group participants prefer the platform's content delivery over traditional methods.",
           "due_date": "Mon, 3rd Nov 2025",
           "assignee": "Solokobiri",
-          "status": "pending"
+          "status": "pending",
+          "notes": "Sprint item started"
         },
         {
           "item_id": "s1_item_4",
@@ -88,7 +89,7 @@
           "success_metric": "Achieve > 10% conversion rate from early adopters at tested pricing tiers.",
           "due_date": "Sat, 8th Nov 2025",
           "assignee": "Solokobiri",
-          "status": "in_progress",
+          "status": "pending",
           "notes": "Sprint item selected and Design Phase initiated."
         },
         {

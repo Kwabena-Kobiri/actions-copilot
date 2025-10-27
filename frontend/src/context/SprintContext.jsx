@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useMemo } from 'react';
 import { mockSprints } from '../data/mockSprints';
 
 const SprintContext = createContext();
@@ -11,7 +11,8 @@ const ACTIONS = {
   HIDE_CONFIRMATION: 'HIDE_CONFIRMATION',
   CONFIRM_SWITCH: 'CONFIRM_SWITCH',
   CANCEL_SWITCH: 'CANCEL_SWITCH',
-  CLEAR_CHAT: 'CLEAR_CHAT'
+  CLEAR_CHAT: 'CLEAR_CHAT',
+  UPDATE_SPRINTS: 'UPDATE_SPRINTS'
 };
 
 // Initial state
@@ -84,6 +85,12 @@ function sprintReducer(state, action) {
         // This will be handled by the ChatInterface component
       };
 
+    case ACTIONS.UPDATE_SPRINTS:
+      return {
+        ...state,
+        sprints: action.payload
+      };
+
     default:
       return state;
   }
@@ -114,18 +121,41 @@ export function SprintProvider({ children }) {
     dispatch({ type: ACTIONS.CANCEL_SWITCH });
   };
 
-  const clearChat = () => {
+  const clearChat = useCallback(() => {
     dispatch({ type: ACTIONS.CLEAR_CHAT });
-  };
+  }, []);
 
-  const value = {
+  const updateSprints = useCallback((sprints) => {
+    dispatch({ type: ACTIONS.UPDATE_SPRINTS, payload: sprints });
+  }, []);
+
+  const fetchSprints = useCallback(async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/sprints');
+      if (!response.ok) {
+        throw new Error('Failed to fetch sprints');
+      }
+      const data = await response.json();
+      if (data.sprints) {
+        updateSprints(data.sprints);
+      }
+      return data;
+    } catch (error) {
+      console.error('Error fetching sprints:', error);
+      return null;
+    }
+  }, [updateSprints]);
+
+  const value = useMemo(() => ({
     ...state,
     selectSprintItem,
     toggleAutoMode,
     confirmSwitch,
     cancelSwitch,
-    clearChat
-  };
+    clearChat,
+    updateSprints,
+    fetchSprints
+  }), [state, selectSprintItem, toggleAutoMode, confirmSwitch, cancelSwitch, clearChat, updateSprints, fetchSprints]);
 
   return (
     <SprintContext.Provider value={value}>
