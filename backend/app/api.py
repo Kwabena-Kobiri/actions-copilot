@@ -7,12 +7,14 @@ import json
 import logging
 import time
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from google.adk.runners import Runner
 from google.adk.sessions import Session
 from google.adk.agents.run_config import RunConfig, StreamingMode
 from google.genai import types
 from config import APP_NAME
 from copilot.agent import create_master_agent, create_session_service
+from copilot.tools.sprint_tools import _load_sprints_data
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -25,6 +27,15 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 # Initialize FastAPI app
 app = FastAPI(title="Sprint Coordinator API")
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # Vite default port
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Initialize services
 master_agent = create_master_agent()
@@ -178,3 +189,19 @@ async def root():
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy"}
+
+
+@app.get("/api/sprints")
+async def get_sprints():
+    """
+    Get all sprint data.
+    
+    Returns:
+        dict: Complete sprint data including all sprints and their items.
+    """
+    try:
+        data = _load_sprints_data()
+        return data
+    except Exception as e:
+        logger.error(f"Error fetching sprints: {e}")
+        return {"error": f"Failed to fetch sprints: {str(e)}"}

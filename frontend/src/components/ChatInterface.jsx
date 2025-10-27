@@ -13,7 +13,10 @@ export default function ChatInterface() {
   const [isConnected, setIsConnected] = useState(false);
   const [ws, setWs] = useState(null);
   const [sessionId, setSessionId] = useState(null);
-  const { clearChat, selectedSprintItem } = useSprint();
+  const { clearChat, selectedSprintItem, fetchSprints } = useSprint();
+
+  // Ref to keep track of the item_id for which the current WebSocket is active
+  const activeSprintItemIdRef = useRef(null);
 
   // Clear messages when clearChat is triggered
   useEffect(() => {
@@ -23,38 +26,79 @@ export default function ChatInterface() {
     }
   }, [clearChat]);
 
+  // Fetch sprints on initial load
+  useEffect(() => {
+    fetchSprints();
+  }, [fetchSprints]);
+
   // Initialize WebSocket connection and send initial message when sprint item is selected
   useEffect(() => {
+    // If no sprint item is selected, close any active WebSocket and reset state
     if (!selectedSprintItem) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
+      setWs(null);
+      setIsConnected(false);
+      activeSprintItemIdRef.current = null;
       return;
     }
 
+    const currentItemId = selectedSprintItem.item_id;
+
+    // If the selected item ID is the same as the one for which we have an active WS,
+    // and the WS is still open, do nothing. This prevents re-initialization on re-renders
+    // caused by `fetchSprints` updating context state.
+    if (currentItemId === activeSprintItemIdRef.current && ws && ws.readyState === WebSocket.OPEN) {
+      console.log(`WebSocket already active for sprint item ID: ${currentItemId}. Skipping re-initialization.`);
+      return;
+    }
+
+    // If we reach here, either the item ID has changed, or the WS is not active/closed.
+    console.log(`Re-initializing WebSocket for sprint item ID: ${currentItemId}`);
+
+    // Close any existing WebSocket connection before opening a new one
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.close();
+    }
+    setWs(null); // Clear previous WebSocket instance from state
+    setIsConnected(false);
+
+    // Reset messages for the new sprint item (or if connection was lost for the same item)
+    setMessages([]);
+
     // Create new session ID for this sprint item
-    const newSessionId = `session_${selectedSprintItem.item_id}_${Date.now()}`;
+    const newSessionId = `session_${currentItemId}_${Date.now()}`;
     setSessionId(newSessionId);
 
     // Create WebSocket connection
-    const websocket = new WebSocket('ws://localhost:8000/ws/chat/');
+    const newWebsocket = new WebSocket('ws://localhost:8000/ws/chat/');
+    setWs(newWebsocket); // Store the new WebSocket instance in state
 
-    websocket.onopen = () => {
-      console.log('WebSocket connected');
+    newWebsocket.onopen = () => {
       setIsConnected(true);
-
+      console.log('WebSocket connected');
       // Send initial message
       const initialMessage = {
         user_id: 'user1234', // You can get this from user context
         session_id: newSessionId,
-        message: `Help me to work on sprint item "${selectedSprintItem.item_id}"`
+        message: `Help me to work on sprint item "${currentItemId}"`
       };
-
-      websocket.send(JSON.stringify(initialMessage));
+      newWebsocket.send(JSON.stringify(initialMessage));
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        text: initialMessage.message,
+        sender: 'user',
+        timestamp: new Date().toLocaleTimeString()
+      }]);
     };
 
-    websocket.onmessage = (event) => {
+    newWebsocket.onmessage = async (event) => {
       const text = event.data;
       
       if (text === '--streaming ended--') {
-        // Streaming completed
+        // Streaming completed - fetch updated sprints
+        await fetchSprints(); // This should now only update the sprint data, not clear chat
         return;
       }
 
@@ -68,7 +112,8 @@ export default function ChatInterface() {
             {
               ...lastMessage,
               text: lastMessage.text + text,
-              timestamp: new Date().toLocaleTimeString()
+              timestamp: new Date().toLocaleTimeString(),
+              isStreaming: true // Keep streaming flag true until final message
             }
           ];
         } else {
@@ -80,30 +125,45 @@ export default function ChatInterface() {
               text: text,
               sender: 'bot',
               timestamp: new Date().toLocaleTimeString(),
-              isStreaming: true
+              isStreaming: true // Mark as streaming
             }
           ];
         }
       });
     };
 
-    websocket.onclose = () => {
+    newWebsocket.onclose = () => {
       console.log('WebSocket disconnected');
       setIsConnected(false);
+      setWs(null); // Clear ws state on close
+      activeSprintItemIdRef.current = null; // Reset ref on close
     };
 
-    websocket.onerror = (error) => {
+    newWebsocket.onerror = (error) => {
       console.error('WebSocket error:', error);
       setIsConnected(false);
+      setWs(null); // Clear ws state on error
+      activeSprintItemIdRef.current = null; // Reset ref on error
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        text: "Error connecting to sprint coordinator. Please try again.",
+        sender: 'bot',
+        timestamp: new Date().toLocaleTimeString()
+      }]);
     };
 
-    setWs(websocket);
+    // Update the ref with the current item_id that this WebSocket is for
+    activeSprintItemIdRef.current = currentItemId;
 
-    // Cleanup function
+    // Cleanup function for this specific WebSocket
     return () => {
-      websocket.close();
+      console.log('Cleaning up WebSocket for item:', currentItemId);
+      if (newWebsocket.readyState === WebSocket.OPEN) {
+        newWebsocket.close();
+      }
     };
-  }, [selectedSprintItem]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSprintItem?.item_id, fetchSprints]);
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files);
